@@ -7,7 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Server implements Runnable{
-	// Rover name and listerning port
+		// Rover name and listerning port
 		private final static String NAME = "ROVER_03";
 		private final static int PORT = 8000;
 
@@ -52,18 +52,7 @@ public class Server implements Runnable{
 			Thread messages = new Thread(){
 				public void run(){
 					while(true){
-						//					try {
-						//						if(cin.ready()){
-						//							System.out.println((char)cin.read());
-						//						}
-						//					} catch (IOException e1) {
-						//						// TODO Auto-generated catch block
-						//						e1.printStackTrace();
-						//					}
-
 						try {
-							//						System.out.println(cin.ready());
-							//						Thread.sleep(5000);
 							if(cin.ready())
 								if(!clients.isEmpty()){
 
@@ -80,7 +69,6 @@ public class Server implements Runnable{
 									message.setLength(0); // Reset StringBuilder
 								}
 						} catch (IOException e) {
-							// TODO Auto-generated catch block
 							e.printStackTrace();
 						}
 					}
