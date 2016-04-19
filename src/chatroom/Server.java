@@ -97,8 +97,8 @@ public class Server implements Runnable{
 
 	private void executeCommand(String message) throws IOException{
 		switch(getCommand(message)){
-		//case 1: showHelp();
-		//		break;
+		case 1: showHelp();
+				break;
 		//case 2: showMyIP();
 		//		break;
 		case 3: showMyPort();
@@ -118,6 +118,24 @@ public class Server implements Runnable{
 		//case 8: closeAllConnections();
 		//		break;
 		default: System.out.println("Not a valid command");  // Might change this later
+		}
+	}
+	
+	private void showHelp(){
+		String descriptions[] = {"myip : displays ip address of machine", 										// myip
+		"myport : displays port number listening for incoming connections",										// myport
+		"connect <destination> <port no.> : extablishes TCP connection to the specified <destination> "			// connect
+				+ "and the specified <port no.>",
+		"list : displays a numbered list of all the connections this process is part of",						// list
+		"terminate <connection id> : this command terminates the connection listed under the "					// terminate
+				+ "specified id when \"list\" is used to display all connections",
+		"send <connection id> <message> :  will send the message to the host on the connection that"			// send
+				+ " is designated by the id when command \"list\" is used. The message to be sent can be up-to 100 characters"
+				+ " long, including blank spaces. ",
+		"exit : closes all connections and terminates this process."};											// exit							
+		
+		for(int i = 0; i < descriptions.length;i++){
+			System.out.println(descriptions[i]);
 		}
 	}
 
