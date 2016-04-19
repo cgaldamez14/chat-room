@@ -4,88 +4,170 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ServerSocket;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class Server implements Runnable{
-		// Rover name and listerning port
-		private final static String NAME = "ROVER_03";
-		private final static int PORT = 8000;
 
-		// List of connected rovers
-		private List<ClientHandler> clients;
+	//Command map
+	private Map<String,Integer> commands = new HashMap<>();
+
+	// Rover name and listerning port
+	private int port;
+
+	// List of connected rovers
+	private List<ClientHandler> clients;
 
 
-		private ServerSocket serverSocket;
+	private ServerSocket serverSocket;
 
-		// Will be used to get input from console
-		private InputStreamReader cin;
-		private StringBuilder message = new StringBuilder();
+	// Will be used to get input from console
+	private InputStreamReader cin;
+	private StringBuilder message = new StringBuilder();
 
-		public Server() throws IOException{
-			// Creates a server socket at specified port
-			serverSocket = new ServerSocket(PORT);
+	public Server(int port) throws IOException{
+		commands.put("help",1);
+		commands.put("myip",2);
+		commands.put("myport",3);
+		commands.put("connect",4);
+		commands.put("list",5);
+		commands.put("terminate",6);
+		commands.put("send",7);
+		commands.put("exit",8);
+		
+		this.port = port;
 
-			System.out.println("ROVER_03 server online...");
-			System.out.println("Waiting for other rovers to connect...");
+		// Creates a server socket at specified port
+		serverSocket = new ServerSocket(port);
 
-			cin = new InputStreamReader(System.in);
-			clients= new ArrayList<>();
+		System.out.println("Waiting for clients to connect...");
 
-			// Begin messaging thread
-			sendMessage();
-		}
+		cin = new InputStreamReader(System.in);
+		clients= new ArrayList<>();
 
-		@Override
-		public void run() {
-			while(true){
-				try {
-					ClientHandler client = new ClientHandler(serverSocket.accept(), NAME);
-					clients.add(client);
-					getClientList();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
+		// Begin command listener thread
+		commandListener();
+	}
+
+	@Override
+	public void run() {
+		while(true){
+			try {
+				ClientHandler client = new ClientHandler(serverSocket.accept());
+				clients.add(client);
+			} catch (IOException e) {
+				e.printStackTrace();
 			}
 		}
+	}
 
-		public void sendMessage(){
-			Thread messages = new Thread(){
-				public void run(){
-					while(true){
-						try {
-							if(cin.ready())
-								if(!clients.isEmpty()){
-
-									while(cin.ready()){
-										message.append((char)cin.read());
-										System.out.println(cin.ready());
-									}
-
-									for(ClientHandler c : clients){
-										System.out.println(message.toString());
-										System.out.println("sending to " + c.getPort() + " message: " + message );
-										c.send(message.toString());
-									}
-									message.setLength(0); // Reset StringBuilder
-								}
-						} catch (IOException e) {
-							e.printStackTrace();
+	// Changing send mesage to a getInput method
+	private void commandListener(){
+		Thread commandInput = new Thread(){
+			public void run(){
+				while(true){
+					try {
+						if(cin.ready()){
+							while(cin.ready())
+								message.append((char)cin.read());
+							executeCommand(message.toString());
+							message.setLength(0); // Reset StringBuilder
 						}
+					} catch (IOException e) {
+						e.printStackTrace();
 					}
 				}
-			};
-			messages.start();
-		}
-
-		public void getClientList(){
-			System.out.println("****************** Rover List **********************");
-			for(ClientHandler c : clients){
-				System.out.println("Address: " + c.getIP() + " , Port:" + c.getPort());
 			}
-		}
+		};
+		commandInput.start();
+	}
 
-		public static void main(String args[]) throws IOException{
-			Thread newThread = new Thread(new Server());
-			newThread.start();
+	// Will be used to extract command from input
+	private int getCommand(String input){
+		String command = input.split(" ")[0].trim();
+		if(validCommand(command))
+			return commands.get(command);
+		return -1;
+	}
+
+	private boolean validCommand(String command){
+		return commands.containsKey(command);
+	}
+
+	private void executeCommand(String message) throws IOException{
+		switch(getCommand(message)){
+		//case 1: showHelp();
+		//		break;
+		//case 2: showMyIP();
+		//		break;
+		case 3: showMyPort();
+		break;
+		case 4: String ip = getDestinationIP(message);
+		int port = getDestinationPort(message);
+		connect(ip, port);
+		break;
+		case 5: showClientList();
+		break;
+		//case 6: terminateConnection(clientId);
+		//		break;
+		case 7: int id = getID(message);
+		String m = getMesage(message);
+		sendMessage(id,m);
+		break;
+		//case 8: closeAllConnections();
+		//		break;
+		default: System.out.println("Not a valid command");  // Might change this later
 		}
+	}
+
+	private String getMesage(String input) {
+		//ip number will be the third item in the input
+		return input.split(" ",3)[2];	// Split will only be applied three times
+	}
+
+	private int getID(String input) {
+		//id number will be the second item in the input
+		return Integer.parseInt(input.split(" ")[1]);
+	}
+
+	private void connect(String destinationIP, int destinationPort) throws IOException {
+		ClientHandler client = new ClientHandler(destinationIP,destinationPort);
+		clients.add(client);
+	}
+
+	private String getDestinationIP(String input) {
+		//ip number will be the second item in the input
+		return input.split(" ")[1];
+	}
+
+	private int getDestinationPort(String input) {
+		//Port number will be the third item in the input
+		return Integer.parseInt(input.split(" ")[2].trim()); // need to trim or you get an exception
+
+		// Need to create an exception in case Integer.parseInt does not work...when users dont enter a valid port number
+	}
+
+	// port will be set when application is initiated
+	private int showMyPort(){
+		return port;
+	}
+	
+	// Send message to specific client
+	public void sendMessage(int clientID, String message){
+		ClientHandler client = clients.get(clientID);
+		client.send(message.toString());
+		System.out.println("Message send to " + clientID);
+	}
+
+	// Client list
+	public void showClientList(){
+		System.out.println("****************** Connected Clients **********************");
+		System.out.println("id: IP address        Port no. ");
+
+		for(int index = 0; index < clients.size(); index++){
+			ClientHandler curr = clients.get(index);
+			System.out.println(index+ ": " + curr.getIP() + " " + curr.getPort());
+		}
+	}
 }

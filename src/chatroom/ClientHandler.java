@@ -36,7 +36,7 @@ public class ClientHandler {
 		read.start();
 	} 
 
-	public ClientHandler(Socket socket, String name) throws IOException{
+	public ClientHandler(Socket socket) throws IOException{
 		this.socket = socket;
 		input = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
 		output = new PrintWriter(this.socket.getOutputStream(), true);
