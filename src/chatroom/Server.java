@@ -2,8 +2,13 @@ package chatroom;
 
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.Inet4Address;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
 import java.net.ServerSocket;
+import java.net.SocketException;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +45,6 @@ public class Server implements Runnable{
 
 		// Creates a server socket at specified port
 		serverSocket = new ServerSocket(port);
-
 		System.out.println("Waiting for clients to connect...");
 
 		cin = new InputStreamReader(System.in);
@@ -61,7 +65,22 @@ public class Server implements Runnable{
 			}
 		}
 	}
-
+	
+	private void showMyIP() throws SocketException{
+		Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+		while (interfaces.hasMoreElements()){
+		    NetworkInterface current = interfaces.nextElement();
+		    if (!current.isUp() || current.isLoopback() || current.isVirtual()) continue;
+		    Enumeration<InetAddress> addresses = current.getInetAddresses();
+		    while (addresses.hasMoreElements()){
+		        InetAddress current_addr = addresses.nextElement();
+		        if (current_addr.isLoopbackAddress()) continue;
+		        if (current_addr instanceof Inet4Address)
+		        	  System.out.println(current_addr.getHostAddress());
+		    }
+		}
+	}
+	
 	// Changing send mesage to a getInput method
 	private void commandListener(){
 		Thread commandInput = new Thread(){
@@ -99,8 +118,8 @@ public class Server implements Runnable{
 		switch(getCommand(message)){
 		case 1: showHelp();
 				break;
-		//case 2: showMyIP();
-		//		break;
+		case 2: showMyIP();
+				break;
 		case 3: showMyPort();
 		break;
 		case 4: String ip = getDestinationIP(message);
