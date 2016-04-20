@@ -10,7 +10,6 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class Server implements Runnable{
@@ -22,7 +21,7 @@ public class Server implements Runnable{
 	private int port;
 
 	// List of connected rovers
-	private List<ClientHandler> clients;
+	private ArrayList<ClientHandler> clients;
 
 
 	private ServerSocket serverSocket;
@@ -58,7 +57,7 @@ public class Server implements Runnable{
 	public void run() {
 		while(true){
 			try {
-				ClientHandler client = new ClientHandler(serverSocket.accept());
+				ClientHandler client = new ClientHandler(serverSocket.accept(),clients);
 				clients.add(client);
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -67,6 +66,11 @@ public class Server implements Runnable{
 	}
 	
 	private void showMyIP() throws SocketException{
+		System.out.println(getMyIP());
+	}
+	
+	private String getMyIP() throws SocketException{
+		String address = null;
 		Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
 		while (interfaces.hasMoreElements()){
 		    NetworkInterface current = interfaces.nextElement();
@@ -76,9 +80,10 @@ public class Server implements Runnable{
 		        InetAddress current_addr = addresses.nextElement();
 		        if (current_addr.isLoopbackAddress()) continue;
 		        if (current_addr instanceof Inet4Address)
-		        	  System.out.println(current_addr.getHostAddress());
+		        	address = current_addr.getHostAddress();
 		    }
 		}
+		return address;
 	}
 	
 	// Changing send mesage to a getInput method
@@ -128,8 +133,9 @@ public class Server implements Runnable{
 		break;
 		case 5: showClientList();
 		break;
-		//case 6: terminateConnection(clientId);
-		//		break;
+		case 6: int clientId = getID(message);
+				terminateConnection(clientId);
+				break;
 		case 7: int id = getID(message);
 		String m = getMesage(message);
 		sendMessage(id,m);
@@ -165,11 +171,11 @@ public class Server implements Runnable{
 
 	private int getID(String input) {
 		//id number will be the second item in the input
-		return Integer.parseInt(input.split(" ")[1]);
+		return Integer.parseInt(input.split(" ")[1].trim());
 	}
 
 	private void connect(String destinationIP, int destinationPort) throws IOException {
-		ClientHandler client = new ClientHandler(destinationIP,destinationPort);
+		ClientHandler client = new ClientHandler(destinationIP,destinationPort,clients);
 		clients.add(client);
 	}
 
@@ -196,9 +202,14 @@ public class Server implements Runnable{
 		client.send(message.toString());
 		System.out.println("Message send to " + clientID);
 	}
-
+	
+	private void terminateConnection(int id) throws IOException{
+		sendMessage(id,getMyIP() + "has disconnected");
+		clients.get(id).closeConnection();
+	}
+	
 	// Client list
-	public void showClientList(){
+	private void showClientList(){
 		System.out.println("****************** Connected Clients **********************");
 		System.out.println("id: IP address        Port no. ");
 
