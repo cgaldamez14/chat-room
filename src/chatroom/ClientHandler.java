@@ -26,8 +26,11 @@ public class ClientHandler {
 			public void run() {
 				while(true){
 					try {
-						if(input.ready())
-							System.out.println(input.readLine());
+						if(input.ready()){
+							System.out.println("Message received from " + getIP()
+							+ "\nSender's Port: " + getPort()
+							+ "\nMessage: " + input.readLine());
+						}
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -48,7 +51,9 @@ public class ClientHandler {
 				while(true){
 					try {
 						if(input.ready()){
-							System.out.println(input.readLine());
+							System.out.println("Message received from " + getIP()
+							+ "\nSender's Port: " + getPort()
+							+ "\nMessage: " + input.readLine());
 						}
 					} catch (IOException e) {
 						e.printStackTrace();
