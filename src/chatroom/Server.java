@@ -70,6 +70,7 @@ public class Server implements Runnable{
 	}
 	
 	private String getMyIP() throws SocketException{
+		boolean gotAddress = false;
 		String address = null;
 		Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
 		while (interfaces.hasMoreElements()){
@@ -79,9 +80,14 @@ public class Server implements Runnable{
 		    while (addresses.hasMoreElements()){
 		        InetAddress current_addr = addresses.nextElement();
 		        if (current_addr.isLoopbackAddress()) continue;
-		        if (current_addr instanceof Inet4Address)
+		        if (current_addr instanceof Inet4Address){
 		        	address = current_addr.getHostAddress();
+		        	gotAddress = true;
+		        	break;
+		        }
 		    }
+		    if(gotAddress)
+		    	break;
 		}
 		return address;
 	}
