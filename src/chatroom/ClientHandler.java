@@ -43,6 +43,7 @@ public class ClientHandler {
 							else if(recv instanceof Disconnect){
 								System.out.println((Disconnect)recv);
 								removeClient();
+								break;
 							}
 						//}
 					} catch (IOException | ClassNotFoundException e) {
@@ -78,9 +79,17 @@ public class ClientHandler {
 				while(true){
 					try {
 						//if(input.available() > 0){			// Checks it there are any bytes to be read
-							System.out.println("Message received from " + getIP()
-							+ "\nSender's Port: " + getPort()
-							+ "\nMessage: " + (String)input.readObject());
+							Object recv = input.readObject();
+							if(recv instanceof String){
+								System.out.println("Message received from " + getIP()
+									+ "\nSender's Port: " + getPort()
+									+ "\nMessage: " + (String)recv);
+							}
+							else if(recv instanceof Disconnect){
+								System.out.println((Disconnect)recv);
+								removeClient();
+								break;
+							}
 						//}
 					} catch (IOException | ClassNotFoundException e) {
 						e.printStackTrace();

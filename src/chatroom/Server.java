@@ -12,6 +12,8 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
+
+/*NOTE TO SELF: Have to also check whether they put the argumetns in the wrong order*/
 public class Server implements Runnable{
 
 	//Command map
@@ -213,6 +215,7 @@ public class Server implements Runnable{
 		ClientHandler client = clients.get(id);
 		client.sendDisconnectRequest(new Disconnect(getMyIP() + "has disconnected"));
 		clients.get(id).closeConnection();
+		clients.remove(client);
 	}
 	
 	// Client list
