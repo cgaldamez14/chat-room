@@ -41,7 +41,7 @@ public class Server implements Runnable{
 		commands.put("terminate",6);
 		commands.put("send",7);
 		commands.put("exit",8);
-		
+
 		this.port = port;
 
 		// Creates a server socket at specified port
@@ -60,40 +60,42 @@ public class Server implements Runnable{
 		while(true){
 			try {
 				ClientHandler client = new ClientHandler(serverSocket.accept(),clients);
+				Thread newClient = new Thread(client);
+				newClient.start();
 				clients.add(client);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
 		}
 	}
-	
+
 	private void showMyIP() throws SocketException{
 		System.out.println(getMyIP());
 	}
-	
+
 	private String getMyIP() throws SocketException{
 		boolean gotAddress = false;
 		String address = null;
 		Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
 		while (interfaces.hasMoreElements()){
-		    NetworkInterface current = interfaces.nextElement();
-		    if (!current.isUp() || current.isLoopback() || current.isVirtual()) continue;
-		    Enumeration<InetAddress> addresses = current.getInetAddresses();
-		    while (addresses.hasMoreElements()){
-		        InetAddress current_addr = addresses.nextElement();
-		        if (current_addr.isLoopbackAddress()) continue;
-		        if (current_addr instanceof Inet4Address){
-		        	address = current_addr.getHostAddress();
-		        	gotAddress = true;
-		        	break;
-		        }
-		    }
-		    if(gotAddress)
-		    	break;
+			NetworkInterface current = interfaces.nextElement();
+			if (!current.isUp() || current.isLoopback() || current.isVirtual()) continue;
+			Enumeration<InetAddress> addresses = current.getInetAddresses();
+			while (addresses.hasMoreElements()){
+				InetAddress current_addr = addresses.nextElement();
+				if (current_addr.isLoopbackAddress()) continue;
+				if (current_addr instanceof Inet4Address){
+					address = current_addr.getHostAddress();
+					gotAddress = true;
+					break;
+				}
+			}
+			if(gotAddress)
+				break;
 		}
 		return address;
 	}
-	
+
 	// Changing send mesage to a getInput method
 	private void commandListener(){
 		Thread commandInput = new Thread(){
@@ -130,9 +132,9 @@ public class Server implements Runnable{
 	private void executeCommand(String message) throws IOException{
 		switch(getCommand(message)){
 		case 1: showHelp();
-				break;
+		break;
 		case 2: showMyIP();
-				break;
+		break;
 		case 3: showMyPort();
 		break;
 		case 4: String ip = getDestinationIP(message);
@@ -142,8 +144,8 @@ public class Server implements Runnable{
 		case 5: showClientList();
 		break;
 		case 6: int clientId = getID(message);
-				terminateConnection(clientId);
-				break;
+		terminateConnection(clientId);
+		break;
 		case 7: int id = getID(message);
 		String m = getMesage(message);
 		sendMessage(id,m);
@@ -153,20 +155,20 @@ public class Server implements Runnable{
 		default: System.out.println("Not a valid command");  // Might change this later
 		}
 	}
-	
+
 	private void showHelp(){
 		String descriptions[] = {"myip : displays ip address of machine", 										// myip
-		"myport : displays port number listening for incoming connections",										// myport
-		"connect <destination> <port no.> : extablishes TCP connection to the specified <destination> "			// connect
+				"myport : displays port number listening for incoming connections",										// myport
+				"connect <destination> <port no.> : extablishes TCP connection to the specified <destination> "			// connect
 				+ "and the specified <port no.>",
-		"list : displays a numbered list of all the connections this process is part of",						// list
-		"terminate <connection id> : this command terminates the connection listed under the "					// terminate
+				"list : displays a numbered list of all the connections this process is part of",						// list
+				"terminate <connection id> : this command terminates the connection listed under the "					// terminate
 				+ "specified id when \"list\" is used to display all connections",
-		"send <connection id> <message> :  will send the message to the host on the connection that"			// send
+				"send <connection id> <message> :  will send the message to the host on the connection that"			// send
 				+ " is designated by the id when command \"list\" is used. The message to be sent can be up-to 100 characters"
 				+ " long, including blank spaces. ",
 		"exit : closes all connections and terminates this process."};											// exit							
-		
+
 		for(int i = 0; i < descriptions.length;i++){
 			System.out.println(descriptions[i]);
 		}
@@ -203,21 +205,21 @@ public class Server implements Runnable{
 	private int showMyPort(){
 		return port;
 	}
-	
+
 	// Send message to specific client
 	public void sendMessage(int clientID, String message){
 		ClientHandler client = clients.get(clientID);
 		client.send(message.toString());
 		System.out.println("Message send to " + clientID);
 	}
-	
+
 	private void terminateConnection(int id) throws IOException{
 		ClientHandler client = clients.get(id);
 		client.sendDisconnectRequest(new Disconnect(getMyIP() + "has disconnected"));
 		clients.get(id).closeConnection();
 		clients.remove(client);
 	}
-	
+
 	// Client list
 	private void showClientList(){
 		System.out.println("****************** Connected Clients **********************");
