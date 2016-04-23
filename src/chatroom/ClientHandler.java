@@ -23,8 +23,9 @@ public class ClientHandler {
 	public ClientHandler(String ip, int port, ArrayList<ClientHandler> clients) throws IOException{
 		this.socket = new Socket(ip, port);
 		this.clients = clients;
-		input = new ObjectInputStream(socket.getInputStream());
 		output = new ObjectOutputStream(socket.getOutputStream());
+		output.flush();
+		input = new ObjectInputStream(socket.getInputStream());
 		//input = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
 		//output = new PrintWriter(this.socket.getOutputStream(), true);
 
@@ -32,13 +33,13 @@ public class ClientHandler {
 			public void run() {
 				while(true){
 					try {
-						if(input.available() > 0){			// Checks it there are any bytes to be read
+						//if(input.available() > 0){			// Checks it there are any bytes to be read
 							System.out.println("Message received from " + getIP()
 							+ "\nSender's Port: " + getPort()
-							+ "\nMessage: " + input.toString());
-						}
-					} catch (IOException e) {
-						e.printStackTrace();
+							+ "\nMessage: " + (String)input.readObject());
+						//}
+					} catch (IOException | ClassNotFoundException e) {
+						continue;
 					}
 				}
 			}
@@ -49,8 +50,9 @@ public class ClientHandler {
 	public ClientHandler(Socket socket, ArrayList<ClientHandler> clients) throws IOException{
 		this.socket = socket;
 		this.clients = clients;
-		input = new ObjectInputStream(socket.getInputStream());
-		output = new ObjectOutputStream(socket.getOutputStream());
+		output = new ObjectOutputStream(this.socket.getOutputStream());
+		output.flush();
+		input = new ObjectInputStream(this.socket.getInputStream());
 		//input = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
 		//output = new PrintWriter(this.socket.getOutputStream(), true);
 
@@ -61,9 +63,9 @@ public class ClientHandler {
 						if(input.available() > 0){			// Checks it there are any bytes to be read
 							System.out.println("Message received from " + getIP()
 							+ "\nSender's Port: " + getPort()
-							+ "\nMessage: " + input.toString());
+							+ "\nMessage: " + (String)input.readObject());
 						}
-					} catch (IOException e) {
+					} catch (IOException | ClassNotFoundException e) {
 						e.printStackTrace();
 					}
 
@@ -78,6 +80,7 @@ public class ClientHandler {
 	public void send(String message){
 		try{
 			output.writeObject(message);
+			output.flush();
 		}catch(Exception e) {
 			for(ClientHandler c : clients){
 				if(c.getIP().equals(getIP())){
