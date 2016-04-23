@@ -1,9 +1,11 @@
 package chatroom;
 
-import java.io.BufferedReader;
+//import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+//import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+//import java.io.PrintWriter;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -11,25 +13,29 @@ import java.util.ArrayList;
 public class ClientHandler {
 
 	private Socket socket;
-	private PrintWriter output;
-	private BufferedReader input;
+	private ObjectOutputStream output;
+	private ObjectInputStream input;
+	//private PrintWriter output;
+	//private BufferedReader input;
 	private ArrayList<ClientHandler> clients;
 
 
 	public ClientHandler(String ip, int port, ArrayList<ClientHandler> clients) throws IOException{
 		this.socket = new Socket(ip, port);
 		this.clients = clients;
-		input = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
-		output = new PrintWriter(this.socket.getOutputStream(), true);
+		input = new ObjectInputStream(socket.getInputStream());
+		output = new ObjectOutputStream(socket.getOutputStream());
+		//input = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
+		//output = new PrintWriter(this.socket.getOutputStream(), true);
 
 		Thread read = new Thread(){
 			public void run() {
 				while(true){
 					try {
-						if(input.ready()){
+						if(input.available() > 0){			// Checks it there are any bytes to be read
 							System.out.println("Message received from " + getIP()
 							+ "\nSender's Port: " + getPort()
-							+ "\nMessage: " + input.readLine());
+							+ "\nMessage: " + input.toString());
 						}
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -43,17 +49,19 @@ public class ClientHandler {
 	public ClientHandler(Socket socket, ArrayList<ClientHandler> clients) throws IOException{
 		this.socket = socket;
 		this.clients = clients;
-		input = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
-		output = new PrintWriter(this.socket.getOutputStream(), true);
+		input = new ObjectInputStream(socket.getInputStream());
+		output = new ObjectOutputStream(socket.getOutputStream());
+		//input = new BufferedReader(new InputStreamReader(this.socket.getInputStream()));
+		//output = new PrintWriter(this.socket.getOutputStream(), true);
 
 		Thread read = new Thread(){
 			public void run() {
 				while(true){
 					try {
-						if(input.ready()){
+						if(input.available() > 0){			// Checks it there are any bytes to be read
 							System.out.println("Message received from " + getIP()
 							+ "\nSender's Port: " + getPort()
-							+ "\nMessage: " + input.readLine());
+							+ "\nMessage: " + input.toString());
 						}
 					} catch (IOException e) {
 						e.printStackTrace();
@@ -69,7 +77,7 @@ public class ClientHandler {
 	// Will be used to send messages to other rovers
 	public void send(String message){
 		try{
-			output.println(message);
+			output.writeObject(message);
 		}catch(Exception e) {
 			for(ClientHandler c : clients){
 				if(c.getIP().equals(getIP())){
