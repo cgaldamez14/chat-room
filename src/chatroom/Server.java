@@ -186,6 +186,8 @@ public class Server implements Runnable{
 
 	private void connect(String destinationIP, int destinationPort) throws IOException {
 		ClientHandler client = new ClientHandler(destinationIP,destinationPort,clients);
+		Thread newClient = new Thread(client);
+		newClient.start();
 		clients.add(client);
 	}
 
