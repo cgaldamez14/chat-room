@@ -34,9 +34,16 @@ public class ClientHandler {
 				while(true){
 					try {
 						//if(input.available() > 0){			// Checks it there are any bytes to be read
-							System.out.println("Message received from " + getIP()
-							+ "\nSender's Port: " + getPort()
-							+ "\nMessage: " + (String)input.readObject());
+							Object recv = input.readObject();
+							if(recv instanceof String){
+								System.out.println("Message received from " + getIP()
+									+ "\nSender's Port: " + getPort()
+									+ "\nMessage: " + (String)recv);
+							}
+							else if(recv instanceof Disconnect){
+								System.out.println((Disconnect)recv);
+								removeClient();
+							}
 						//}
 					} catch (IOException | ClassNotFoundException e) {
 						continue;
@@ -46,6 +53,16 @@ public class ClientHandler {
 		};
 		read.start();
 	} 
+	
+	private void removeClient() throws IOException{
+		for(ClientHandler c : clients){
+			if(c == this){
+				clients.remove(c);
+				break;
+			}
+		}
+		socket.close();
+	}
 
 	public ClientHandler(Socket socket, ArrayList<ClientHandler> clients) throws IOException{
 		this.socket = socket;
@@ -60,11 +77,11 @@ public class ClientHandler {
 			public void run() {
 				while(true){
 					try {
-						if(input.available() > 0){			// Checks it there are any bytes to be read
+						//if(input.available() > 0){			// Checks it there are any bytes to be read
 							System.out.println("Message received from " + getIP()
 							+ "\nSender's Port: " + getPort()
 							+ "\nMessage: " + (String)input.readObject());
-						}
+						//}
 					} catch (IOException | ClassNotFoundException e) {
 						e.printStackTrace();
 					}
@@ -80,6 +97,20 @@ public class ClientHandler {
 	public void send(String message){
 		try{
 			output.writeObject(message);
+			output.flush();
+		}catch(Exception e) {
+			for(ClientHandler c : clients){
+				if(c.getIP().equals(getIP())){
+					clients.remove(c);
+					break;
+				}
+			}
+		}
+	}
+	
+	public void sendDisconnectRequest(Disconnect request){
+		try{
+			output.writeObject(request);
 			output.flush();
 		}catch(Exception e) {
 			for(ClientHandler c : clients){

@@ -210,7 +210,8 @@ public class Server implements Runnable{
 	}
 	
 	private void terminateConnection(int id) throws IOException{
-		sendMessage(id,getMyIP() + "has disconnected");
+		ClientHandler client = clients.get(id);
+		client.sendDisconnectRequest(new Disconnect(getMyIP() + "has disconnected"));
 		clients.get(id).closeConnection();
 	}
 	
