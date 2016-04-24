@@ -1,6 +1,5 @@
+package chatroom;
 import java.io.IOException;
-
-import chatroom.Server;
 
 public class Chat {
 public static void main(String args[]) throws InterruptedException, IOException{

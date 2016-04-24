@@ -22,9 +22,10 @@ public class ClientHandler implements Runnable{
 			try {
 				Object recv = input.readObject();
 				if(recv instanceof String){
-					System.out.println("\033[35;3m Message received from: \033[0;0m" + getIP()
-					+ "\n\033[35;3m Sender's Port: \033[0;0m" + getPort()
-					+ "\n\033[35;3m Message: \033[0;0m" + (String)recv);
+					System.out.println(
+							"\033[35;3m Message received from: \033[0;0m" + getIP()
+							+ "\n\033[35;3m Sender's Port: \033[0;0m" + getPort()
+							+ "\n\033[35;3m Message: \033[0;0m" + (String)recv);
 				}
 				else if(recv instanceof Disconnect){
 					System.out.println((Disconnect)recv);
@@ -39,12 +40,12 @@ public class ClientHandler implements Runnable{
 	}
 	public ClientHandler(String ip, int port, ArrayList<ClientHandler> clients) throws IOException{
 		try{
-		this.socket = new Socket(ip, port);
-		this.clients = clients;
-		output = new ObjectOutputStream(socket.getOutputStream());
-		input = new ObjectInputStream(socket.getInputStream());
-		System.out.println("\033[34;3m You are now connected to " + getIP() + " on port " + getPort() + "\033[0;0m \n");
-		successfulConnection = true;
+			this.socket = new Socket(ip, port);
+			this.clients = clients;
+			output = new ObjectOutputStream(socket.getOutputStream());
+			input = new ObjectInputStream(socket.getInputStream());
+			System.out.println("\033[34;3m You are now connected to " + getIP() + " on port " + getPort() + "\033[0;0m \n");
+			successfulConnection = true;
 		}
 		catch(UnknownHostException e){
 			System.out.println("You did not enter a valid ip address");

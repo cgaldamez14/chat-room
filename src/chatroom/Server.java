@@ -3,57 +3,14 @@ package chatroom;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.ConnectException;
-import java.net.Inet4Address;
-import java.net.InetAddress;
-import java.net.NetworkInterface;
 import java.net.ServerSocket;
 import java.net.SocketException;
-import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Map;
 
 
 /*NOTE TO SELF: Have to also check whether they put the argumetns in the wrong order*/
 public class Server implements Runnable{
 
-	/************************** created a static map for the commands ****************************/
-
-	private static final Map<String,Integer> COMMANDS;
-	static {
-		Map<String, Integer> map = new HashMap<>();
-		map.put("help",1);
-		map.put("myip",2);
-		map.put("myport",3);
-		map.put("connect",4);
-		map.put("list",5);
-		map.put("terminate",6);
-		map.put("send",7);
-		map.put("exit",8);
-		COMMANDS = Collections.unmodifiableMap(map);
-	}
-	/********************************************************************************************/
-
-	/**************** created a static array for the command descriptions ***********************/
-
-	private static final String PLAIN_TEXT = "\033[0;0m";
-	private static final String BOLD_TEXT = "\033[0;1m";
-	private static final String BOLD_YELLOW_TEXT = "\033[33;1m";
-	private static final String ITALIC_RED_TEXT = "\033[31;3m";
-
-	private static final String DESCRIPTIONS[] = {
-			BOLD_YELLOW_TEXT + " myip : " + PLAIN_TEXT + " displays ip address of machine\n", 										
-			BOLD_YELLOW_TEXT + " myport : " + PLAIN_TEXT + "displays port number listening for incoming connections\n",													
-			BOLD_YELLOW_TEXT + " connect <destination> <port no.> : " + PLAIN_TEXT + "extablishes TCP connection to the specified <destination> and the specified <port no.>\n",
-			BOLD_YELLOW_TEXT + " list : " + PLAIN_TEXT + "displays a numbered list of all the connections this process is part of\n",									
-			BOLD_YELLOW_TEXT + " terminate <connection id> : " + PLAIN_TEXT + "this command terminates the connection listed under the specified id when \"list\" is used to display all connections\n",
-			BOLD_YELLOW_TEXT + " send <connection id> <message> :  " + PLAIN_TEXT + "will send the message to the host on the connection that is designated by the id when command \"list\" is used. The message to be sent can be up-to 100 characters long, including blank spaces.\n",
-			BOLD_YELLOW_TEXT + " exit : " + PLAIN_TEXT + "closes all connections and terminates this process.\n"
-	};
-
-	/***********************************************************************************************/
 
 	private ServerSocket serverSocket;
 	private ArrayList<ClientHandler> clients;	// list of connected rovers
@@ -67,7 +24,7 @@ public class Server implements Runnable{
 	// constructor
 	public Server(int port) throws IOException{
 		this.listeningPort = port;
-		this.myIP = getMyIP();
+		this.myIP = Commands.getMyIP();
 
 		// creates a server socket at specified port
 		serverSocket = new ServerSocket(port);
@@ -92,30 +49,6 @@ public class Server implements Runnable{
 				e.printStackTrace();
 			}
 		}
-	}
-
-	// only called once in Constructor
-	private String getMyIP() throws SocketException{
-		boolean gotAddress = false;
-		String address = null;
-		Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
-		while (interfaces.hasMoreElements()){
-			NetworkInterface current = interfaces.nextElement();
-			if (!current.isUp() || current.isLoopback() || current.isVirtual()) continue;
-			Enumeration<InetAddress> addresses = current.getInetAddresses();
-			while (addresses.hasMoreElements()){
-				InetAddress current_addr = addresses.nextElement();
-				if (current_addr.isLoopbackAddress()) continue;
-				if (current_addr instanceof Inet4Address){
-					address = current_addr.getHostAddress();
-					gotAddress = true;
-					break;
-				}
-			}
-			if(gotAddress)
-				break;
-		}
-		return address;
 	}
 
 	/***************************************** Methods used for Commands *********************************************************************/
@@ -144,7 +77,7 @@ public class Server implements Runnable{
 
 	/* method takes in a message, extracts the command and applies the necessary action based on that command */
 	private void executeCommand(String message) throws IOException, InterruptedException{
-		switch(getCommand(message)){
+		switch(Commands.getCommand(message)){
 		case 1: 
 			showHelp();
 			break;
@@ -155,8 +88,8 @@ public class Server implements Runnable{
 			showMyPort();
 			break;
 		case 4: 
-			String ip = getDestinationIP(message);
-			int port = getDestinationPort(message);
+			String ip = Commands.getDestinationIP(message);
+			int port = Commands.getDestinationPort(message);
 			if(port < 0){
 				System.out.println("You did not enter a valid port number");
 				break;
@@ -170,7 +103,7 @@ public class Server implements Runnable{
 			showClientList();
 			break;
 		case 6: 
-			int clientId = getID(message);
+			int clientId = Commands.getID(message);
 			if(clientId < 0 || clientId >= clients.size()){
 				System.out.println("You did not enter a valid client id number");
 				break;
@@ -181,8 +114,8 @@ public class Server implements Runnable{
 			System.out.println("Could not complete your request make sure your request is in the following form:\n\tterminate <client id>");
 			break;
 		case 7: 
-			int id = getID(message);
-			String m = getMesage(message);
+			int id = Commands.getID(message);
+			String m = Commands.getMesage(message);
 			if(id < 0 || id >= clients.size()){
 				System.out.println("You did not enter a valid client id number");
 				break;
@@ -202,11 +135,11 @@ public class Server implements Runnable{
 
 	// shows help menu on console
 	private void showHelp(){
-		System.out.println(BOLD_YELLOW_TEXT + "\n**************************************** COMMANDS ********************************************\n" + PLAIN_TEXT);
-		for(int i = 0; i < DESCRIPTIONS.length;i++){
-			System.out.println(DESCRIPTIONS[i]);
+		System.out.println(Commands.BOLD_YELLOW_TEXT + "\n**************************************** COMMANDS ********************************************\n" + Commands.PLAIN_TEXT);
+		for(int i = 0; i < Commands.DESCRIPTIONS.length;i++){
+			System.out.println(Commands.DESCRIPTIONS[i]);
 		}
-		System.out.println(BOLD_YELLOW_TEXT + "**********************************************************************************************\n" + PLAIN_TEXT);
+		System.out.println(Commands.BOLD_YELLOW_TEXT + "**********************************************************************************************\n" + Commands.PLAIN_TEXT);
 
 	}
 
@@ -233,20 +166,20 @@ public class Server implements Runnable{
 
 	// Client list
 	private void showClientList(){
-		System.out.println(BOLD_YELLOW_TEXT + "****************** Connected Clients **********************\n" + PLAIN_TEXT);
+		System.out.println(Commands.BOLD_YELLOW_TEXT + "****************** Connected Clients **********************\n" + Commands.PLAIN_TEXT);
 		System.out.printf("%-7s%-20s%-20s%n","\tid:","IP address","Port no.");
 
 		for(int index = 0; index < clients.size(); index++){
 			ClientHandler curr = clients.get(index);
 			System.out.printf("%-7s%-20s%-20d%n","\t" + index + ": ",curr.getIP(), curr.getPort());
 		}
-		System.out.println(BOLD_YELLOW_TEXT + "\n**********************************************************\n" + PLAIN_TEXT);
+		System.out.println(Commands.BOLD_YELLOW_TEXT + "\n**********************************************************\n" + Commands.PLAIN_TEXT);
 
 	}
 
 	private void terminateConnection(int id) throws IOException{
 		ClientHandler client = clients.get(id);
-		client.sendDisconnectRequest(new Disconnect(ITALIC_RED_TEXT + getMyIP() + " has disconnected" + PLAIN_TEXT));
+		client.sendDisconnectRequest(new Disconnect(Commands.ITALIC_RED_TEXT + myIP + " has disconnected" + Commands.PLAIN_TEXT));
 		clients.get(id).closeConnection();
 		clients.remove(client);
 	}
@@ -261,70 +194,5 @@ public class Server implements Runnable{
 	private void closeAllConnections() throws IOException, InterruptedException{
 		while(!clients.isEmpty())
 			terminateConnection(0);
-	}
-
-	/************************************************ Methods used for parsing input *********************************************************/ 
-
-	private String getMesage(String input) {
-		//ip number will be the third item in the input
-		return input.split(" ",3)[2];	// Split will only be applied three times
-	}
-
-	private int getID(String input) {
-		try{
-		//id number will be the second item in the input
-		return Integer.parseInt(input.split(" ")[1].trim());
-		}
-		catch(NumberFormatException e){
-			return -1;
-		}
-	}
-
-	private String getDestinationIP(String input) {
-		//ip number will be the second item in the input
-		return input.split(" ")[1];
-	}
-
-	private int getDestinationPort(String input) {
-		try{
-		//Port number will be the third item in the input
-		return Integer.parseInt(input.split(" ")[2].trim()); // need to trim or you get an exception
-		}
-		catch(NumberFormatException e){
-			return -1;
-		}
-		// Need to create an exception in case Integer.parseInt does not work...when users dont enter a valid port number
-	}
-
-	// Will be used to extract command from input
-	private int getCommand(String input){
-		String command = input.split(" ")[0].trim();
-		Integer commandIndex = COMMANDS.get(command);
-		if (commandIndex == null)								// order here matter do not move around
-			return -1;
-		switch(commandIndex){
-		case 4:	
-			if(input.split(" ").length != 3)
-				return -4;
-			break;
-		case 6:
-			if(input.split(" ").length != 2)
-				return -6;
-			break;
-
-		case 7:
-			if(input.split(" ").length < 3)
-				return -7;
-			break;
-
-		}
-		if(validCommand(command))
-			return commandIndex;
-		return -1;
-	}
-
-	// checks if a valid command was entered by checking if the command exists in the command map
-	private boolean validCommand(String command){
-		return COMMANDS.containsKey(command);
 	}
 }
