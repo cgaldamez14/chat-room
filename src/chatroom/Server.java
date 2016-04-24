@@ -36,46 +36,40 @@ public class Server implements Runnable{
 
 	/**************** created a static array for the command descriptions ***********************/
 
-	private static final String DESCRIPTIONS[] = {"myip : displays ip address of machine", 										
+	private static final String DESCRIPTIONS[] = {
+			"\u001B[1mmyip : displays ip address of machine", 										
 			"myport : displays port number listening for incoming connections",													
-			"connect <destination> <port no.> : extablishes TCP connection to the specified <destination> "						
-					+ "and the specified <port no.>",
-					"list : displays a numbered list of all the connections this process is part of",									
-					"terminate <connection id> : this command terminates the connection listed under the "								
-							+ "specified id when \"list\" is used to display all connections",
-							"send <connection id> <message> :  will send the message to the host on the connection that"						
-									+ " is designated by the id when command \"list\" is used. The message to be sent can be up-to 100 characters"
-									+ " long, including blank spaces. ",
-	"exit : closes all connections and terminates this process."};
+			"connect <destination> <port no.> : extablishes TCP connection to the specified <destination> and the specified <port no.>",
+			"list : displays a numbered list of all the connections this process is part of",									
+			"terminate <connection id> : this command terminates the connection listed under the specified id when \"list\" is used to display all connections",
+			"send <connection id> <message> :  will send the message to the host on the connection that is designated by the id when command \"list\" is used. The message to be sent can be up-to 100 characters long, including blank spaces. ",
+			"exit : closes all connections and terminates this process."
+	};
 
 	/***********************************************************************************************/
 
-	// Rover name and listerning port
-	private int listeningPort;
-	private String myIP;
-
-	// List of connected rovers
-	private ArrayList<ClientHandler> clients;
-
-
 	private ServerSocket serverSocket;
+	private ArrayList<ClientHandler> clients;	// list of connected rovers
+	private int listeningPort;					// listening port
+	private String myIP;
 
 	// Will be used to get input from console
 	private InputStreamReader cin;
 	private StringBuilder message = new StringBuilder();
 
+	// constructor
 	public Server(int port) throws IOException{
 		this.listeningPort = port;
 		this.myIP = getMyIP();
 
-		// Creates a server socket at specified port
+		// creates a server socket at specified port
 		serverSocket = new ServerSocket(port);
 		System.out.println("Waiting for clients to connect...");
 
 		cin = new InputStreamReader(System.in);
 		clients= new ArrayList<>();
 
-		// Begin command listener thread
+		// begin command listener thread
 		commandListener();
 	}
 
@@ -93,12 +87,13 @@ public class Server implements Runnable{
 		}
 	}
 
+	// checks if a valid command was entered by checking if the command exists in the command map
 	private boolean validCommand(String command){
 		return COMMANDS.containsKey(command);
 	}
 
-	
-	// Only called once in Constructor
+
+	// only called once in Constructor
 	private String getMyIP() throws SocketException{
 		boolean gotAddress = false;
 		String address = null;
@@ -196,14 +191,14 @@ public class Server implements Runnable{
 	private void showMyPort(){
 		System.out.println(listeningPort);
 	}
-	
+
 	private void connect(String destinationIP, int destinationPort) throws IOException {
 		ClientHandler client = new ClientHandler(destinationIP,destinationPort,clients);
 		Thread newClient = new Thread(client);
 		newClient.start();
 		clients.add(client);
 	}
-	
+
 	// Client list
 	private void showClientList(){
 		System.out.println("****************** Connected Clients **********************");
@@ -214,21 +209,21 @@ public class Server implements Runnable{
 			System.out.println(index+ ": " + curr.getIP() + " " + curr.getPort());
 		}
 	}
-	
+
 	private void terminateConnection(int id) throws IOException{
 		ClientHandler client = clients.get(id);
 		client.sendDisconnectRequest(new Disconnect(getMyIP() + "has disconnected"));
 		clients.get(id).closeConnection();
 		clients.remove(client);
 	}
-	
+
 	// Send message to specific client
 	private void sendMessage(int clientID, String message){
 		ClientHandler client = clients.get(clientID);
 		client.send(message.toString());
 		System.out.println("Message send to " + clientID);
 	}
-	
+
 	/************************************************ Methods used for parsing input *********************************************************/ 
 
 	private String getMesage(String input) {
@@ -252,7 +247,7 @@ public class Server implements Runnable{
 
 		// Need to create an exception in case Integer.parseInt does not work...when users dont enter a valid port number
 	}
-	
+
 	// Will be used to extract command from input
 	private int getCommand(String input){
 		String command = input.split(" ")[0].trim();
