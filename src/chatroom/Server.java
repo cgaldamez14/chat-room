@@ -7,43 +7,75 @@ import java.net.ServerSocket;
 import java.net.SocketException;
 import java.util.ArrayList;
 
-
-/*NOTE TO SELF: Have to also check whether they put the argumetns in the wrong order*/
+/**
+ * The Server class takes care of creating a listening socket and
+ * binding it to a specific port and ip. This class starts multiple threads that are
+ * reponsible to listening to IO from the user and peers. The Server class provides the
+ * functionality of all of the following available commands available to the user.
+ *   
+ * @author Carlos Galdamez
+ * @author Jose Rivas
+ * @author Eduardo Lopez-Serrano 
+ * @version 1.0
+ * @since 1.0
+ */
 public class Server implements Runnable{
 
+	private Commands commands;
+	/** List of clients connected to user **/
+	private ArrayList<Client> clients;
+	/** Client object that contains users' IP address and listening port number **/
+	private Client myInfo;		
+	/** ServerSocket object that will be used as a listening socket for incoming connection requests **/
+	private ServerSocket serverSocket;			
 
-	private ServerSocket serverSocket;
-	private ArrayList<ClientHandler> clients;	// list of connected rovers
-	private int listeningPort;					// listening port
-	private String myIP;
-
-	// Will be used to get input from console
+	/** Input stream from console **/
 	private InputStreamReader cin;
-	private StringBuilder message = new StringBuilder();
+	/** Message generated from appending characters from input stream **/
+	private StringBuilder message;
 
-	// constructor
+	/**
+	 * 	Constructor instantiates a socket and binds it to the process ip and specified port
+	 *  number. The socket that is created in the constructor will be used to listen to 
+	 *  incoming connection request. 
+	 *  @param port any positive integer value between 1 and 65500. Cannot be port number
+	 * 		       that has already been standardized.
+	 *  @see StringBuilder
+	 *  @see ArrayList
+	 *  @see ServerSocket
+	 *  @see Client
+	 *  @see InputStreamReader
+	 *  @throws IOException
+	 *  
+	 */
 	public Server(int port) throws IOException{
-		this.listeningPort = port;
-		this.myIP = Commands.getMyIP();
+		myInfo = new Client(Commands.getMyIP(),port);
+		commands = new Commands(clients);
+		/* Instantiates server socket and binds it to machine IP and specified port number */
+		serverSocket = new ServerSocket(myInfo.getListeningPort());
 
-		// creates a server socket at specified port
-		serverSocket = new ServerSocket(port);
+		System.out.println("The program runs on port number: " + myInfo.getListeningPort());
 		System.out.println("Waiting for clients to connect...");
 
 		cin = new InputStreamReader(System.in);
+		message = new StringBuilder();
 		clients= new ArrayList<>();
 
-		// begin command listener thread
 		commandListener();
 	}
 
 	@Override
 	public void run() {
+
+		/* Loop will run until program is shut down, this loop is used to listen for incoming connection requests */
 		while(true){
 			try {
-				ClientHandler client = new ClientHandler(serverSocket.accept(),clients);
-				Thread newClient = new Thread(client);
-				newClient.start();
+				/* Instantiates a new client handler every time a connect request is received.
+				 *  Connection socket is created and thread that listens for incoming messages is started.
+				 *  ClientHandler is also added to the ArrayList of clients */
+				Client client = new Client();
+				client.setClientHandler(new ClientHandler(serverSocket.accept(),clients));
+				client.send(myInfo);
 				clients.add(client);
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -51,19 +83,25 @@ public class Server implements Runnable{
 		}
 	}
 
-	/***************************************** Methods used for Commands *********************************************************************/
+	/*-------------------------------------------------------- METHODS FOR COMMANDS ----------------------------------------------------------*/
 
-	/* this method starts a new thread that constantly listens to see whether the user has typed something in the console*/
+	/**
+	 *  Starts a new thread which listens for the user's input on the console.
+	 *  This method is called when Server class in instantiated.
+	 *  @see Thread
+	 *  @see InputStreamReader
+	 *  @see StringBuilder
+	 */
 	private void commandListener(){
 		Thread commandInput = new Thread(){
 			public void run(){
 				while(true){
 					try {
-						if(cin.ready()){
-							while(cin.ready())
-								message.append((char)cin.read());		// reads one character at a time and appends it to the string builder
+						if(cin.ready()){								/* Checks if the stream is ready to be read */
+							while(cin.ready())							/* While stream has something to be read each character will be read one by one */
+								message.append((char)cin.read());		/* Read one character at a time and append it to the StringBuilder */
 							executeCommand(message.toString());
-							message.setLength(0); 						// reset StringBuilder
+							message.setLength(0); 						/* Clear StringBuilder for further use */
 						}
 					} catch (IOException | InterruptedException e) {
 						e.printStackTrace();
@@ -71,13 +109,19 @@ public class Server implements Runnable{
 				}
 			}
 		};
-		// start command thread
+
 		commandInput.start();
 	}
 
-	/* method takes in a message, extracts the command and applies the necessary action based on that command */
-	private void executeCommand(String message) throws IOException, InterruptedException{
-		switch(Commands.getCommand(message)){
+	/** Determines what method to call based on the input string received from the console
+	 * 	@param input Input string from console 
+	 *  @see Commands
+	 * 	@throws IOException
+	 *  @throws InterruptedException
+	 * */
+	private void executeCommand(String input) throws IOException, InterruptedException{
+		/* Chooses method based on integer received from getCommand(input) method in Command class */
+		switch(commands.getCommand(input)){
 		case 1: 
 			showHelp();
 			break;
@@ -88,110 +132,132 @@ public class Server implements Runnable{
 			showMyPort();
 			break;
 		case 4: 
-			String ip = Commands.getDestinationIP(message);
-			int port = Commands.getDestinationPort(message);
-			if(port < 0){
-				System.out.println("You did not enter a valid port number");
-				break;
-			}
+			String ip = Commands.getDestinationIP(input);
+			int port = Commands.getDestinationPort(input);
 			connect(ip, port);
-			break;
-		case -4: 
-			System.out.println("Could not complete your request make sure your request is in the following form:\n\tconnect <destination ip> <port no>");
 			break;
 		case 5: 
 			showClientList();
 			break;
 		case 6: 
-			int clientId = Commands.getID(message);
-			if(clientId < 0 || clientId >= clients.size()){
-				System.out.println("You did not enter a valid client id number");
-				break;
-			}
+			int clientId = commands.getID(input);
 			terminateConnection(clientId);
 			break;
-		case -6: 
-			System.out.println("Could not complete your request make sure your request is in the following form:\n\tterminate <client id>");
-			break;
 		case 7: 
-			int id = Commands.getID(message);
-			String m = Commands.getMesage(message);
-			if(id < 0 || id >= clients.size()){
-				System.out.println("You did not enter a valid client id number");
-				break;
-			}
+			int id = commands.getID(input);
+			String m = Commands.getMesage(input);
 			sendMessage(id,m);
-			break;
-		case -7: 
-			System.out.println("Could not complete your request make sure your request is in the following form:\n\tsend <client id> <message>");
 			break;
 		case 8: 
 			closeAllConnections();
 			System.exit(0);
 			break;
-		default: System.out.println("Not a valid command");  // Might change this later
+		default: /* Does nothing if number is anything else */
 		}
 	}
 
-	// shows help menu on console
+	/** Displays help menu on the console 
+	 * @see Commands
+	 * */
 	private void showHelp(){
-		System.out.println(Commands.BOLD_YELLOW_TEXT + "\n**************************************** COMMANDS ********************************************\n" + Commands.PLAIN_TEXT);
+		System.out.println("\n---------------------------------------- COMMANDS -----------------------------------------------\n");
+		/* Iterates through list of descriptions in Commands class and prints each command with its description on the console */
 		for(int i = 0; i < Commands.DESCRIPTIONS.length;i++){
 			System.out.println(Commands.DESCRIPTIONS[i]);
 		}
-		System.out.println(Commands.BOLD_YELLOW_TEXT + "**********************************************************************************************\n" + Commands.PLAIN_TEXT);
+		System.out.println("\n------------------------------------------------------------------------------------------------\n");
 
 	}
 
+	/** Displays user's IP address on the console 
+	 * @see Commands
+	 * @throws SocketException
+	 * */
 	private void showMyIP() throws SocketException{
-		System.out.println(myIP);
+		System.out.println(myInfo.getIP());
 	}
 
+	/** Displays users' listening port on the console 
+	 * @see Commands
+	 * */
 	private void showMyPort(){
-		System.out.println(listeningPort);
+		System.out.println(myInfo.getListeningPort());
 	}
 
+	/** Creates socket, connecting user to peer at the destination IP address and port
+	 * 	specified. Once the connection is established new ClientHandler thread is started and
+	 *  new client is added to the client list.
+	 * @param destinationIP IP address of peer user wants to connect to
+	 * @param destinationPort Listening port of peer user wants to connect to
+	 * @see Commands
+	 * @see ClientHandler
+	 * @see Thread
+	 * @see ArrayList
+	 * @throws IOException
+	 * */
 	private void connect(String destinationIP, int destinationPort) throws IOException {
 		try{
-			ClientHandler client = new ClientHandler(destinationIP,destinationPort,clients);
-			if(client.successfulConnection){
-			Thread newClient = new Thread(client);
-			newClient.start();
+			Client client = new Client();
+			client.setClientHandler(new ClientHandler(destinationIP,destinationPort,clients));
+			//			if(client.successfulConnection){
+			//			Thread newClient = new Thread(client);
+			//			newClient.start();
+			client.send(myInfo);
 			clients.add(client);
-			}
 		}catch(ConnectException e){
-			System.out.println("Connection could not be extablished please make sure you have the correct ip address and port number.");
+			System.err.println("ERROR: Connection could not be extablished please make sure you have the correct ip address and port number.");
 		}
 	}
 
-	// Client list
+	/** Displays list of connected clients on the console
+	 * @see ClientHandler
+	 * */
 	private void showClientList(){
-		System.out.println(Commands.BOLD_YELLOW_TEXT + "****************** Connected Clients **********************\n" + Commands.PLAIN_TEXT);
+		System.out.println("\n----------------------------- CLIENTS ------------------------------\n");
 		System.out.printf("%-7s%-20s%-20s%n","\tid:","IP address","Port no.");
 
 		for(int index = 0; index < clients.size(); index++){
-			ClientHandler curr = clients.get(index);
-			System.out.printf("%-7s%-20s%-20d%n","\t" + index + ": ",curr.getIP(), curr.getPort());
+			Client curr = clients.get(index);
+			System.out.printf("%-7s%-20s%-20d%n","\t" + curr.getID() + ": ",curr.getIP(), curr.getListeningPort());
 		}
-		System.out.println(Commands.BOLD_YELLOW_TEXT + "\n**********************************************************\n" + Commands.PLAIN_TEXT);
+		System.out.println("\n-------------------------------------------------------------------\n");
 
 	}
 
+	/** Terminates connection with client
+	 * @param id Client's id that is displayed when user enters <code>list</code> command;
+	 * @see ClientHandler
+	 * @see ArrayList
+	 * @see Disconnect
+	 * @throws IOException
+	 * */
 	private void terminateConnection(int id) throws IOException{
-		ClientHandler client = clients.get(id);
-		client.sendDisconnectRequest(new Disconnect(Commands.ITALIC_RED_TEXT + myIP + " has disconnected" + Commands.PLAIN_TEXT));
-		clients.get(id).closeConnection();
+		Client client = clients.get(id);
+		client.send(new Disconnect(myInfo.getIP() + " has disconnected"));
+		client.closeConnection();
 		clients.remove(client);
 	}
 
-	// Send message to specific client
-	private void sendMessage(int clientID, String message){
-		ClientHandler client = clients.get(clientID);
-		client.send(message.toString());
-		System.out.println("Message send to " + clientID);
+	/** Sends message to client
+	 * @param id Client's id that is displayed when user enters <code>list</code> command;
+	 * @param message String message that will be sent to peer. String can be up to 100 characters including spaces.
+	 * @throws IOException 
+	 * @see ClientHandler
+	 * */
+	private void sendMessage(int id, String message) throws IOException{
+		/* Gets client at the specified id and uses ClientHandler's send method to send message*/
+		Client client = clients.get(id);
+		client.send(message);
+		System.out.println("Message sent to " + id);
 	}
 
+	/** Terminates all connections and closes application
+	 * @see ArrayList
+	 * @throws IOException
+	 * @throws InterruptedException
+	 * */
 	private void closeAllConnections() throws IOException, InterruptedException{
+		/* Iterates through list of connected clients and calls the terminate connection function for each one */
 		while(!clients.isEmpty())
 			terminateConnection(0);
 	}
