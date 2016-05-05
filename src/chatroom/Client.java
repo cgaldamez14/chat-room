@@ -31,6 +31,8 @@ public class Client implements Serializable {
 	/** Client handler that will take care of receiving and sending messages to this client **/
 	private ClientHandler handler;
 	
+	public boolean messageSentSuccessfully = true;
+	
 	
 	/*------------------------------------------------------------------- CONSTRUCTORS ----------------------------------------------------------*/
 	
@@ -156,10 +158,12 @@ public class Client implements Serializable {
 	public void send(Object object) throws IOException{
 		try {
 			handler.send(object);
+			messageSentSuccessfully = true;
 		} catch (IOException e) {
 			System.out.println(getIP() + " has disconnected. Message could not be sent");
 			handler.removeClient();
 			handler.closeConnection();
+			messageSentSuccessfully = false;
 		}
 	}
 	

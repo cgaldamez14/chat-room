@@ -196,7 +196,7 @@ public class Server implements Runnable{
 
 			ClientHandler handler = new ClientHandler(destinationIP,destinationPort,clients);
 			if(handler.successfulConnection){
-				Client client = new Client(numberOfClients - 1);
+				Client client = new Client(numberOfClients);
 				numberOfClients = numberOfClients + 1;
 				client.setClientHandler(handler);
 				client.send(myInfo);
@@ -251,6 +251,8 @@ public class Server implements Runnable{
 		for(Client c : clients)
 			if (c.getID() == id){
 				c.send(message);
+				if(!c.messageSentSuccessfully)
+					return;
 				break;
 			}
 		System.out.println("Message sent to " + id);
@@ -281,9 +283,10 @@ public class Server implements Runnable{
 				/* Instantiates a new client handler every time a connect request is received.
 				 *  Connection socket is created and thread that listens for incoming messages is started.
 				 *  ClientHandler is also added to the ArrayList of clients */
+				ClientHandler handler = new ClientHandler(serverSocket.accept(),clients);
 				Client client = new Client(numberOfClients);
 				numberOfClients = numberOfClients + 1;
-				client.setClientHandler(new ClientHandler(serverSocket.accept(),clients));
+				client.setClientHandler(handler);
 				client.send(myInfo);
 				clients.add(client);
 			} catch (IOException e) {
