@@ -34,6 +34,10 @@ public class Server implements Runnable{
 	/** Message generated from appending characters from input stream **/
 	private StringBuilder message;
 
+	private int numberOfClients = -1;
+
+	/*------------------------------------------------------------------- CONSTRUCTOR ----------------------------------------------------------*/
+
 	/**
 	 * 	Constructor instantiates a socket and binds it to the process ip and specified port
 	 *  number. The socket that is created in the constructor will be used to listen to 
@@ -50,6 +54,8 @@ public class Server implements Runnable{
 	 */
 	public Server(int port) throws IOException{
 		myInfo = new Client(Commands.getMyIP(),port);
+		numberOfClients = numberOfClients + 1;
+		clients= new ArrayList<>();
 		commands = new Commands(clients);
 		/* Instantiates server socket and binds it to machine IP and specified port number */
 		serverSocket = new ServerSocket(myInfo.getListeningPort());
@@ -59,31 +65,11 @@ public class Server implements Runnable{
 
 		cin = new InputStreamReader(System.in);
 		message = new StringBuilder();
-		clients= new ArrayList<>();
 
 		commandListener();
 	}
 
-	@Override
-	public void run() {
-
-		/* Loop will run until program is shut down, this loop is used to listen for incoming connection requests */
-		while(true){
-			try {
-				/* Instantiates a new client handler every time a connect request is received.
-				 *  Connection socket is created and thread that listens for incoming messages is started.
-				 *  ClientHandler is also added to the ArrayList of clients */
-				Client client = new Client();
-				client.setClientHandler(new ClientHandler(serverSocket.accept(),clients));
-				client.send(myInfo);
-				clients.add(client);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-	}
-
-	/*-------------------------------------------------------- METHODS FOR COMMANDS ----------------------------------------------------------*/
+	/*------------------------------------------------------------ METHODS FOR COMMANDS -----------------------------------------------------------------*/
 
 	/**
 	 *  Starts a new thread which listens for the user's input on the console.
@@ -197,13 +183,25 @@ public class Server implements Runnable{
 	 * */
 	private void connect(String destinationIP, int destinationPort) throws IOException {
 		try{
-			Client client = new Client();
-			client.setClientHandler(new ClientHandler(destinationIP,destinationPort,clients));
-			//			if(client.successfulConnection){
-			//			Thread newClient = new Thread(client);
-			//			newClient.start();
-			client.send(myInfo);
-			clients.add(client);
+			/* Check for self connections and exisisting connections first  */
+			if(destinationIP.equals("127.0.0.1") || destinationIP.equals(myInfo.getIP())){
+				System.out.println("ERROR: You cannot establish a connection with yourself.");
+				return;
+			}
+			for(Client c: clients)
+				if(destinationIP.equals(c.getIP()) && destinationPort == c.getListeningPort()){
+					System.out.println("ERROR: You are already connected to this client. Type 'list' to see a list of connected clients.");
+					return;
+				}
+
+			ClientHandler handler = new ClientHandler(destinationIP,destinationPort,clients);
+			if(handler.successfulConnection){
+				Client client = new Client(numberOfClients - 1);
+				numberOfClients = numberOfClients + 1;
+				client.setClientHandler(handler);
+				client.send(myInfo);
+				clients.add(client);
+			}
 		}catch(ConnectException e){
 			System.err.println("ERROR: Connection could not be extablished please make sure you have the correct ip address and port number.");
 		}
@@ -232,10 +230,14 @@ public class Server implements Runnable{
 	 * @throws IOException
 	 * */
 	private void terminateConnection(int id) throws IOException{
-		Client client = clients.get(id);
-		client.send(new Disconnect(myInfo.getIP() + " has disconnected"));
-		client.closeConnection();
-		clients.remove(client);
+		for(Client c : clients)
+			if (c.getID() == id){
+				System.out.println("You have disconnected from " + c.getIP() + " on port " + c.getListeningPort());
+				c.send(new Disconnect(myInfo.getIP() + " has disconnected"));
+				c.closeConnection();
+				clients.remove(c);
+				break;
+			}
 	}
 
 	/** Sends message to client
@@ -246,8 +248,11 @@ public class Server implements Runnable{
 	 * */
 	private void sendMessage(int id, String message) throws IOException{
 		/* Gets client at the specified id and uses ClientHandler's send method to send message*/
-		Client client = clients.get(id);
-		client.send(message);
+		for(Client c : clients)
+			if (c.getID() == id){
+				c.send(message);
+				break;
+			}
 		System.out.println("Message sent to " + id);
 	}
 
@@ -258,7 +263,32 @@ public class Server implements Runnable{
 	 * */
 	private void closeAllConnections() throws IOException, InterruptedException{
 		/* Iterates through list of connected clients and calls the terminate connection function for each one */
-		while(!clients.isEmpty())
-			terminateConnection(0);
+		for(Client c: clients){
+			c.send(new Disconnect(myInfo.getIP() + " has disconnected"));
+			c.closeConnection();
+		}
+		clients.clear();
+	}
+
+	/*---------------------------------------------------------- STARTS WHEN NEW THREAD IS CREATED -------------------------------------------------------------------*/
+
+	@Override
+	public void run() {
+
+		/* Loop will run until program is shut down, this loop is used to listen for incoming connection requests */
+		while(true){
+			try {
+				/* Instantiates a new client handler every time a connect request is received.
+				 *  Connection socket is created and thread that listens for incoming messages is started.
+				 *  ClientHandler is also added to the ArrayList of clients */
+				Client client = new Client(numberOfClients);
+				numberOfClients = numberOfClients + 1;
+				client.setClientHandler(new ClientHandler(serverSocket.accept(),clients));
+				client.send(myInfo);
+				clients.add(client);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 	}
 }

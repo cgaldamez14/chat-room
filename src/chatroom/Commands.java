@@ -49,7 +49,7 @@ public class Commands {
 			" send <connection id> <message> : will send the message to the host on the connection that is designated by the id when command \"list\" is used. The message to be sent can be up-to 100 characters long, including blank spaces.\n",
 			" exit : closes all connections and terminates this process.\n"
 	};
-	
+
 	/** List of connected peers **/
 	private ArrayList<Client> clients;
 
@@ -73,9 +73,9 @@ public class Commands {
 			System.err.println("ERROR: You did not enter a valid command. Type 'help' to see a list of valid commands.");
 			return -1;
 		}
-		
+
 		Integer commandIndex = COMMANDS.get(command);
-		
+
 		/* This switch statement does some argument validation */
 		switch(commandIndex){
 		case 4:	
@@ -86,6 +86,7 @@ public class Commands {
 				System.err.println("ERROR: You did not enter a valid port number.");
 				return -1;
 			}
+			break;
 		case 6:
 			if(input.split(" ").length != 2){			/* Checks if user put the correct number of arguments*/
 				System.err.println("ERROR: Could not complete your request make sure your request is in the following form:\n\tterminate <client id>");
@@ -94,6 +95,7 @@ public class Commands {
 				System.err.println("ERROR: You did not enter a valid client ID number. Type 'list' to see a list of available peers.");
 				return -1;
 			}
+			break;
 		case 7: 
 			if(input.split(" ").length < 3){			    /* Checks if user put the correct number of arguments*/
 				System.err.println("ERROR: Could not complete your request make sure your request is in the following form:\n\tsend <client id> <message>");
@@ -103,8 +105,9 @@ public class Commands {
 				System.err.println("ERROR: You did not enter a valid client ID number. Type 'list' to see a list of available peers.");
 				return -1;
 			}
+			break;
 		}
-		
+
 		return commandIndex;
 	}
 
@@ -146,7 +149,6 @@ public class Commands {
 	/**
 	 * Extracts the id argument from the user's input
 	 * @param input User's input from the console
-	 * @param clients List of clients user is connected to
 	 * @return returns id number of peer that user entered if it is valid otherwise it returns -1
 	 */
 	public int getID(String input) {
@@ -163,7 +165,7 @@ public class Commands {
 	/**
 	 * Extracts the IP address argument from the user's input
 	 * @param input User's input from console
-	 * @returns a String that only contains the IP address entered by the user
+	 * @return a String that only contains the IP address entered by the user
 	 */
 	public static String getDestinationIP(String input) {
 		//ip number will be the second item in the input
@@ -173,7 +175,7 @@ public class Commands {
 	/**
 	 * Extracts the port argument from the user's input
 	 * @param input User's input from console
-	 * @returns returns port number of peer that user entered if it is valid otherwise it returns -1
+	 * @return returns port number of peer that user entered if it is valid otherwise it returns -1
 	 */
 	public static int getDestinationPort(String input) {
 		/* Port number will be the third item in the input */
@@ -182,7 +184,7 @@ public class Commands {
 			return Integer.parseInt(port);
 		return -1;
 	}
-	
+
 	/**
 	 * Extracts the message from the user's input
 	 * @param input User's input from console
@@ -193,9 +195,9 @@ public class Commands {
 		return input.split(" ",3)[2];
 	}
 
-	
+
 	/*----------------------------------------------------------- SUPPORT BOOLEANS -----------------------------------------------------------------*/
-	
+
 	/**
 	 * Verifies if command that was entered was a valid command by checking if the command map cotains the command that was entered by the user
 	 * @param command A command entered by the user
@@ -210,26 +212,29 @@ public class Commands {
 	 * @param port String represenation of the port number entered by the user
 	 * @return returns true if user input for port number is a valid port number otherwise it returns false
 	 */
-	private static boolean validPort(String port){
-		int portNum = Integer.parseInt(port);
-		if(!isNumber(port) || portNum < 1024 || portNum > 65500)	/* Check ASCII number representation of number character to verify that only numbers were enterd for the port */
-			return false;
-		return true;
+	public static boolean validPort(String port){
+		if(isNumber(port)){
+			int portNum = Integer.parseInt(port);
+			if(portNum >= 1024 && portNum <= 65500)	/* Check ASCII number representation of number character to verify that only numbers were enterd for the port */
+				return true;
+		}
+		return false;
 	}
-	
+
 	/**
 	 * Iterates through every client object to see if specified ID exist
 	 * @param id ID input by user as a parameter for one of the commands
 	 * @return return true if the id entered is a client ID for a connected client otherwise false
 	 */
 	private boolean idExist(int id){
-		for(Client c : clients){
-			if (id == c.getID())
-				return true;
-		}
+		if(clients != null && !clients.isEmpty())
+			for(Client c : clients){
+				if (id == c.getID())
+					return true;
+			}
 		return false;
 	}
-	
+
 	/**
 	 * Verifies whether a giver string can be parsed into an Integer
 	 * @param s String entered by application user
@@ -237,8 +242,8 @@ public class Commands {
 	 */
 	private static boolean isNumber(String s){
 		for(int i = 0; i < s.length(); i++){
-			int curr = (int)s.charAt(0);
-			if(curr < 48 && curr > 57 )
+			int curr = (int)s.charAt(i);
+			if(curr < 48 || curr > 57 )
 				return false;
 		}
 		return true;

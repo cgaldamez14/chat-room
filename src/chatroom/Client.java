@@ -19,7 +19,6 @@ import java.io.Serializable;
 public class Client implements Serializable {
 	
 	private static final long serialVersionUID = 1L;
-	private static int numOfClients = -1; 
 	
 	/** Client's id number **/
 	private int id;
@@ -32,23 +31,37 @@ public class Client implements Serializable {
 	/** Client handler that will take care of receiving and sending messages to this client **/
 	private ClientHandler handler;
 	
+	
+	/*------------------------------------------------------------------- CONSTRUCTORS ----------------------------------------------------------*/
+	
 	/**
-	 * No argument constructor. When Client is instantiated using this Constructor the id is set to the current number of clients
+	 * When Client is instantiated using this Constructor the id is set to the current number of clients
 	 * and the current number of clients is them increased by one.
 	 */
-	public Client(){
-		id = numOfClients++;
+	public Client(int id){
+		this.id = id;
+	}
+	
+	/**
+	 * Constructor in which two fields are set for this client. The client's IP address and the client's listening port.
+	 * @param iPAddress IP address of peer that is connecting or that user is connecting to
+	 * @param listeningPort Port number of the peer that is connecting or that user is connecting to
+	 */
+	public Client(String iPAddress, int listeningPort){
+		this.listeningPort = listeningPort;
+		this.iPAddress = iPAddress;
 	}
 	
 	/**
 	 * Constructor in which three fields are set for this client. The client id, the client's IP address and the client's listening port.
 	 * @param iPAddress IP address of peer that is connecting or that user is connecting to
 	 * @param listeningPort Port number of the peer that is connecting or that user is connecting to
+	 * @param id Client id
 	 */
-	public Client(String iPAddress, int listeningPort){
-		id = numOfClients++;
+	public Client(String iPAddress, int listeningPort, int id){
 		this.listeningPort = listeningPort;
 		this.iPAddress = iPAddress;
+		this.id = id;
 	}
 	
 	/*------------------------------------------------------------ GETTERS ---------------------------------------------------------------------- */
@@ -141,7 +154,13 @@ public class Client implements Serializable {
 	 * @see Object
 	 */
 	public void send(Object object) throws IOException{
-		handler.send(object);
+		try {
+			handler.send(object);
+		} catch (IOException e) {
+			System.out.println(getIP() + " has disconnected. Message could not be sent");
+			handler.removeClient();
+			handler.closeConnection();
+		}
 	}
 	
 	

@@ -30,6 +30,8 @@ public class ClientHandler implements Runnable{
 	private ObjectOutputStream output;
 	/** Stream to recieve objects from peer **/
 	private ObjectInputStream input;
+	
+	public boolean successfulConnection = false;
 
 	/*------------------------------------------------------------------- CONSTRUCTORS ----------------------------------------------------------*/
 	
@@ -46,9 +48,11 @@ public class ClientHandler implements Runnable{
 			this.clients = clients;											
 			output = new ObjectOutputStream(socket.getOutputStream());		/* Instantiated ObjectOutputStream which will write from the socket stream */
 			input = new ObjectInputStream(socket.getInputStream());			/* Instantiated ObjectInputStream which will read from the socket stream */
+			successfulConnection = true;
 		}
 		catch(UnknownHostException e){
 			System.out.println("You did not enter a valid ip address");
+			return;
 		}
 	} 
 	
@@ -110,12 +114,11 @@ public class ClientHandler implements Runnable{
 	
 	/**
 	 * Removes instance of Client from ArrayList of connected clients and closes socket connection.
-	 * @throws IOException
 	 * @see Client
 	 * @see ArrayList
 	 * @see Socket
 	 */
-	private void removeClient() throws IOException{
+	public void removeClient(){
 		
 		/* Iterates through list of Clients and removes Client instance that this ClientHandler belongs to */
 		for(Client c : clients){

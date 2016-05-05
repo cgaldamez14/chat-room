@@ -43,17 +43,13 @@ public class Chat {
 	public static void main(String args[]) throws InterruptedException, IOException{
 		int listeningPort;
 		if (args.length > 0) {
-			try {
-				listeningPort = Integer.parseInt(args[0]);
-				if(listeningPort < 1024 || listeningPort > 65500){							/* Port number can only be within this range */
-					System.err.println("ERROR: You did not enter a valid port number");
-					System.exit(1);
-				}
-				new Thread(new Server(listeningPort)).start();
-			} catch (NumberFormatException e) {
-				System.err.println("ERROR: You did not enter a valid port number");		    /* Text was entered instead of an integer for the port number */
+			if(!Commands.validPort(args[0])){
+				System.err.println("ERROR: You did not enter a valid port number");
 				System.exit(1);
 			}
+			listeningPort = Integer.parseInt(args[0]);
+			new Thread(new Server(listeningPort)).start();
+
 		}else{
 			System.err.println("ERROR: You did not enter a port number");					/* Port number was not entered */
 			System.exit(1);
